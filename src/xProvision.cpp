@@ -75,65 +75,41 @@ bool xProvision::receive(void)
             while (!Serial.available());
             String s = Serial.readStringUntil('\n');
 
-            DynamicJsonBuffer jsonBuffer;
-            JsonObject &root = jsonBuffer.parseObject(s);
+            DynamicJsonDocument doc(1024);
+			DeserializationError error = deserializeJson(doc, s);
+			
+			if(error)
+			{
+				Serial.print(SYNC); //Part of the provisioning standard
+                Serial.print(SYNC); //Part of the provisioning standard
+				Serial.println("Deserialization failed, error code");
+				Serial.println(error);
+				return false;
+			}
 
-            if (!root.success())
-            {
-                Serial.print(SYNC); //Part of the provisioning standard
-                Serial.print(SYNC); //Part of the provisioning standard
-                Serial.println("Something went wrong!");
-                return false;
-            }
             else
             {
-                if (root.containsKey("WiFi_Network") && root.containsKey("WiFi_Password"))
-                {
-                    _ssid = root["WiFi_Network"].as<String>();
-                    _pwd = root["WiFi_Password"].as<String>();
-                }
+                _ssid = doc["WiFi_Network"].as<String>();
+                _pwd = doc["WiFi_Password"].as<String>();
+				_mqtt_server = doc["MQTT_Server"].as<String>();
+				_mqtt_port = doc["MQTT_Port"].as<String>();
+                _ubidots_token = doc["UbiDots_Token"].as<String>();
+                _blynk_token = doc["Blynk_Token"].as<String>();
+                _azure_token = doc["Azure_Token"].as<String>();
+				_cloud_token = doc["Cloud_Token"].as<String>();
 
-                if (root.containsKey("MQTT_Server") && root.containsKey("MQTT_Port"))
+                _led = doc["LED_to_blink"].as<String>();
+                switch (_led.charAt(0))
                 {
-                    _mqtt_server = root["MQTT_Server"].as<String>();
-                    _mqtt_port = root["MQTT_Port"].as<String>();
-                }
-
-                if (root.containsKey("UbiDots_Token"))
-                {
-                    _ubidots_token = root["UbiDots_Token"].as<String>();
-                }
-
-                if (root.containsKey("Blynk_Token"))
-                {
-                    _blynk_token = root["Blynk_Token"].as<String>();
-                }
-
-                if (root.containsKey("Azure_Token"))
-                {
-                    _azure_token = root["Azure_Token"].as<String>();
-                }
-
-                if (root.containsKey("Cloud_Token"))
-                {
-                    _cloud_token = root["Cloud_Token"].as<String>();
-                }
-
-                if (root.containsKey("LED_to_blink"))
-                {
-                    _led = root["LED_to_blink"].as<String>();
-                    switch (_led.charAt(0))
-                    {
-                    case 'R':
-                        blinkLED = LED_RED;
-                        break;
-                    case 'G':
-                        blinkLED = LED_GREEN;
-                        break;
-                    case 'B':
-                        blinkLED = LED_BUILTIN;
-                        break;
-                    }
+                  case 'R':
+                  blinkLED = LED_RED;
+                  break;
+                  case 'G':
+                  blinkLED = LED_GREEN;
+                  break;
+                  case 'B':
+                  blinkLED = LED_BUILTIN;
+                  break;
                 }
                 Serial.print(SYNC); //Part of the provisioning standard
                 Serial.print(SYNC); //Part of the provisioning standard
@@ -165,16 +141,15 @@ bool xProvision::success(void)
 
 void xProvision::addWiFi(void)
 {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    root["WiFi_Network"] = "YourSSID";
-    root["WiFi_Password"] = "YourPSK";
+    StaticJsonDocument<200> jsonDocument;
+    jsonDocument["WiFi_Network"] = "YourSSID";
+    jsonDocument["WiFi_Password"] = "YourPSK";
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(jsonDocument)
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+	serializeJson(jsonDocument, json)
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -197,16 +172,15 @@ bool xProvision::getWiFi(String &ssid, String &psk)
 
 void xProvision::addMQTT(void)
 {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    root["MQTT_Server"] = "ServerHostname";
-    root["MQTT_Port"] = "ServerPort";
+    StaticJsonDocument<200> doc;
+    doc["MQTT_Server"] = "ServerHostname";
+    doc["MQTT_Port"] = "ServerPort";
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -229,15 +203,14 @@ bool xProvision::getMQTT(String &mqtt, String &port)
 
 void xProvision::addUbiDotsToken(void)
 {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    root["UbiDots_Token"] = "YourUbitdotsToken";
+    StaticJsonDocument<200> doc;
+    doc["UbiDots_Token"] = "YourUbitdotsToken";
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -259,15 +232,14 @@ bool xProvision::getUbiDotsToken(String &var1)
 
 void xProvision::addAzureToken(void)
 {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    root["Azure_Token"] = "YourAzureToken";
+    StaticJsonDocument<200> doc;
+    doc["Azure_Token"] = "YourAzureToken";
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -289,15 +261,14 @@ bool xProvision::getAzureToken(String &var1)
 
 void xProvision::addBlynkToken(void)
 {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    root["Blynk_Token"] = "YourBlynkToken";
+    StaticJsonDocument<200> jsonDocument;
+    doc["Blynk_Token"] = "YourBlynkToken";
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -319,15 +290,14 @@ bool xProvision::getBlynkToken(String &var1)
 
 void xProvision::addCloudToken(void)
 {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    root["Cloud_Token"] = "YourCloudToken";
+    StaticJsonDocument<200> doc;
+    doc["Cloud_Token"] = "YourCloudToken";
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -349,18 +319,17 @@ bool xProvision::getCloudToken(String &var1)
 
 void xProvision::optionBlinkLED(void)
 {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    JsonArray &data = root.createNestedArray("LED_to_blink");
+    StaticJsonDocument<200> doc;
+    /*JsonArray &data = root.createNestedArray("LED_to_blink");
     data.add("Red");
     data.add("Green");
-    data.add("Blue");
+    data.add("Blue");*/
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -414,15 +383,14 @@ void xProvision::end(String var)
 
 void xProvision::addVariable(String var1, String var2)
 {
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
-    root[var1] = var2;
+    DynamicJsonDocument doc;
+    doc[var1] = var2;
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -446,14 +414,13 @@ bool xProvision::getVariable(String var1, String &var2)
 
 void xProvision::addCustomJson(String var1)
 {
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &root = jsonBuffer.parseObject(var1);
+    DynamicJsonDocument doc;
 
-    size_t len = root.measureLength();
+    size_t len = measureJson(doc);
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    root.printTo(json, size);
+    serializeJson(doc, json);
     for (int i = 0; i <= (int)size; i++)
     {
         _json[i] = json[i + 1];
@@ -558,8 +525,8 @@ void xProvision::reset(void)
     jsonFile = jsonFileStored = "";
 }
 
-bool xProvision::saveConfigFile(void)
-{
+/*bool xProvision::saveConfigFile(void)
+{*/
     if(strcmp(jsonFileStored.c_str(), jsonFile.c_str()) != 0)
     {
         return store_data(jsonFile);
@@ -567,8 +534,8 @@ bool xProvision::saveConfigFile(void)
     return true;
 }
 
-bool xProvision::saveConfigFile(String json)
-{
+/*bool xProvision::saveConfigFile(String json)
+{*/
     if(strcmp(jsonFileStored.c_str(), json.c_str()) != 0)
     {
         return store_data(json);
@@ -581,8 +548,8 @@ bool xProvision::loadConfigFile(String &var1)
     return load_data(var1);
 }
 
-bool xProvision::store_data(String json)
-{
+/*bool xProvision::store_data(String json)
+{*/
     return writeFile(json);
 }
 
@@ -591,8 +558,8 @@ bool xProvision::load_data(String &json)
     return readFile(json);
 }
 
-bool xProvision::writeFile(String json)
-{
+/*bool xProvision::writeFile(String json)
+{*/
     //File xinaboxFile = SPIFFS.open("/xinaboxuploader.json", "r");
 
     if (SPIFFS.begin())
@@ -672,15 +639,23 @@ bool xProvision::readFile(String &json)
                 size_t size = xinaboxFile.size();
                 std::unique_ptr<char[]> buf1(new char[size]);
                 xinaboxFile.readBytes(buf1.get(), size);
-                DynamicJsonBuffer jsonBuffer1;
-                JsonObject &json1 = jsonBuffer1.parseObject(buf1.get());
+                DynamicJsonDocument doc(1024);
+				DeserializationError error = deserializeJson(doc, buf1.get());
                 xinaboxFile.close();
-                size_t len = json1.measureLength();
+				
+				if(error)
+				{
+					Serial.println("deserializeJson failed with Code");
+					Serial.println(error);
+					return false;
+				}
+				
+                size_t len = measureJson(doc);
                 size_t sizeJson = len + 1;
-                if (json1.success() && (sizeJson > 3))
+                if (sizeJson > 3)
                 {
                     //json1.prettyPrintTo(Serial);
-                    json1.printTo(json);
+					serializeJson(doc, json)
                     SPIFFS.end();
                     provision_successful = true;
                     config_file_exists = true;
@@ -721,10 +696,10 @@ bool xProvision::readFile(String &json)
     return true;
 }
 
-bool xProvision::createConfigFile(void)
+/*bool xProvision::createConfigFile(void)
 {
     return saveConfigFile();
-}
+}*/
 
 bool xProvision::CREATE_XINABOX_JSON(void)
 {
@@ -741,21 +716,21 @@ bool xProvision::CREATE_XINABOX_JSON(void)
         }
         else
         {
-            DynamicJsonBuffer jsonBuffer1;
-            JsonObject &json1 = jsonBuffer1.parseObject(jsonFile);
+            DynamicJsonDocument doc(1024);
+			DeserializationError error = deserializeJson(doc, jsonFile);
+			
+			if(error)
+			{
+				Serial.println("Deserialization failed, error code");
+				Serial.println(error);
+				return false;
+			}
 
-            if (json1.success())
-            {
-                //json1.prettyPrintTo(Serial);
-                json1.printTo(xinaboxFile);
-                xinaboxFile.close();
-                SPIFFS.end();
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            //json1.prettyPrintTo(Serial);
+            serializeJson(doc, xinaboxFile);
+            xinaboxFile.close();
+            SPIFFS.end();
+            return true;
         }
     }
     else
@@ -767,11 +742,11 @@ bool xProvision::CREATE_XINABOX_JSON(void)
 
 bool xProvision::CHECK_XINABOX_JSON(String var1, String &var2)
 {
-    DynamicJsonBuffer jsonBuffer2;
-    JsonObject &json2 = jsonBuffer2.parseObject(jsonFileStored);
-    if (json2.success())
+    DynamicJsonDocument doc;
+	DeserializationError error =  deserializeJson(doc, jsonFileStored);
+    if (!error)
     {
-        if (json2.containsKey(var1))
+        if (doc.containsKey(var1))
         {
             var2 = json2[var1].as<String>();
             SPIFFS.end();
@@ -783,7 +758,9 @@ bool xProvision::CHECK_XINABOX_JSON(String var1, String &var2)
         }
     }
     else
-    {   
+    {
+		Serial.println("Deserialization failed, error code");
+		Serial.println(error);
         return false;
     }
     return false;
