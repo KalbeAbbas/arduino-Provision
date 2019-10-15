@@ -161,10 +161,19 @@ void xProvision::addWiFi(void)
 
 bool xProvision::getWiFi(String &ssid, String &psk)
 {
-    if ((_ssid[0] == '\0') || (_pwd[0] == '\0'))
-    {
-        return false;
-    }
+    DynamicJsonDocument doc(1024);
+	DeserializationError error = deserializeJson(doc, jsonFileStored);
+	
+	if(error)
+	{
+		Serial.println("JSON Deserialization failed, error code");
+		Serial.println(error.c_str());
+		return false;
+	}
+	
+    _ssid = doc["WiFi_Network"].as<String>();
+    _pwd = doc["WiFi_Password"].as<String>();
+	
     ssid = _ssid;
     psk = _pwd;
     return true;
@@ -192,12 +201,21 @@ void xProvision::addMQTT(void)
 
 bool xProvision::getMQTT(String &mqtt, String &port)
 {
-    if ((_mqtt_server[0] == '\0') || (_mqtt_port[0] == '\0'))
-    {
-        return false;
-    }
-    mqtt = _mqtt_server;
-    port = _mqtt_port;
+    DynamicJsonDocument doc(1024);
+	DeserializationError error = deserializeJson(doc, jsonFileStored);
+	
+	if(error)
+	{
+		Serial.println("JSON Deserialization failed, error code");
+		Serial.println(error.c_str());
+		return false;
+	}
+	
+	_mqtt_server = doc["MQTT_Server"].as<String>();
+	_mqtt_port = doc["MQTT_Port"].as<String>();
+	
+	mqtt = _mqtt_server;
+	port = _mqtt_port;
     return true;
 }
 
@@ -222,11 +240,19 @@ void xProvision::addUbiDotsToken(void)
 
 bool xProvision::getUbiDotsToken(String &var1)
 {
-    if (_ubidots_token[0] == '\0')
-    {
-        return false;
-    }
-    var1 = _ubidots_token;
+    DynamicJsonDocument doc(1024);
+	DeserializationError error = deserializeJson(doc, jsonFileStored);
+	
+	if(error)
+	{
+		Serial.println("JSON Deserialization failed, error code");
+		Serial.println(error.c_str());
+		return false;
+	}
+	
+    _ubidots_token = doc["UbiDots_Token"].as<String>();
+	
+	var1 = _ubidots_token;
     return true;
 }
 
@@ -251,11 +277,19 @@ void xProvision::addAzureToken(void)
 
 bool xProvision::getAzureToken(String &var1)
 {
-    if (_azure_token[0] == '\0')
-    {
-        return false;
-    }
-    var1 = _azure_token;
+    DynamicJsonDocument doc(1024);
+	DeserializationError error = deserializeJson(doc, jsonFileStored);
+	
+	if(error)
+	{
+		Serial.println("JSON Deserialization failed, error code");
+		Serial.println(error.c_str());
+		return false;
+	}
+	
+    _azure_token = doc["Azure_Token"].as<String>();
+	
+	var1 = _azure_token;
     return true;
 }
 
@@ -280,11 +314,19 @@ void xProvision::addBlynkToken(void)
 
 bool xProvision::getBlynkToken(String &var1)
 {
-    if (_blynk_token[0] == '\0')
-    {
-        return false;
-    }
-    var1 = _blynk_token;
+    DynamicJsonDocument doc(1024);
+	DeserializationError error = deserializeJson(doc, jsonFileStored);
+	
+	if(error)
+	{
+		Serial.println("JSON Deserialization failed, error code");
+		Serial.println(error.c_str());
+		return false;
+	}
+	
+    _blynk_token = doc["Blynk_Token"].as<String>();
+	
+	var1 = _blynk_token;
     return true;
 }
 
@@ -309,11 +351,19 @@ void xProvision::addCloudToken(void)
 
 bool xProvision::getCloudToken(String &var1)
 {
-    if (_cloud_token[0] == '\0')
-    {
-        return false;
-    }
-    var1 = _cloud_token;
+    DynamicJsonDocument doc(1024);
+	DeserializationError error = deserializeJson(doc, jsonFileStored);
+	
+	if(error)
+	{
+		Serial.println("JSON Deserialization failed, error code");
+		Serial.println(error.c_str());
+		return false;
+	}
+	
+	_cloud_token = doc["Cloud_Token"].as<String>();
+	
+	var1 = _cloud_token;
     return true;
 }
 
@@ -415,18 +465,20 @@ bool xProvision::getVariable(String var1, String &var2)
 
 void xProvision::addCustomJson(String var1)
 {
-    DynamicJsonDocument doc(1024);
-
-    size_t len = measureJson(doc);
+    size_t len = var1.length();
     size_t size = len + 1;
     char json[size];
     char _json[size];
-    serializeJson(doc, json, size);
+	
+	var1.toCharArray(json, size);
+	
+    //serializeJson(doc, json, size);
     for (int i = 0; i <= (int)size; i++)
     {
-        _json[i] = json[i + 1];
+        _json[i] = json[i];
     }
-    _json[size - 3] = '\0';
+    _json[size] = '\0';
+	Serial.println(_json);
     buildConfigJson(_json);
 }
 
@@ -437,11 +489,11 @@ void xProvision::buildConfigJson(String _json)
 
 void xProvision::merge_json(String obj1, String obj2)
 {
-    /*
-    Serial.println("MergeDocs");
+    
+    /*Serial.println("MergeDocs");
     Serial.println(obj1);
-    Serial.println(obj2);
-    */
+    Serial.println(obj2);*/
+    
 
     uint16_t len1 = strlen(obj1.c_str());
     uint16_t len2 = strlen(obj2.c_str());
@@ -644,7 +696,6 @@ bool xProvision::readFile(String &json)
                 DynamicJsonDocument doc(1024);
 				DeserializationError error = deserializeJson(doc, buf1.get());
                 xinaboxFile.close();
-				
 				if(error)
 				{
 					Serial.println("deserializeJson failed with Code");
