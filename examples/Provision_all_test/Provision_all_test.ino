@@ -29,9 +29,13 @@ void setup() {
 
   prv.transmit();
   //Writes this string, with the CRLF and SYNC prefixed and CRLF suffixed
+  //$!${"WiFi_Network":"YourSSID","WiFi_Password":"YourPSK","MQTT_Server":"ServerHostname","MQTT_Port":"ServerPort","UbiDots_Token":"YourUbitdotsToken","Azure_Token":"YourAzureToken","Blynk_Token":"YourBlynkToken","Cloud_Token":"YourCloudToken","Name":"Your_Name","LED_to_blink":["Red","Green","Blue"]}
+
 
   prv.receive();
   //Reads this string, with CRLF suffixed
+  //{"WiFi_Network":"YourSSID","WiFi_Password":"YourPSK","MQTT_Server":"ServerHostname","MQTT_Port":"ServerPort","UbiDots_Token":"YourUbitdotsToken","Azure_Token":"YourAzureToken","Blynk_Token":"YourBlynkToken","Cloud_Token":"YourCloudToken","Name":"Your_Name","LED_to_blink":["Red","Green","Blue"]}
+
 
   if (prv.success())
   {
