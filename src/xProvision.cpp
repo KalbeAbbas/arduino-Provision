@@ -320,10 +320,11 @@ bool xProvision::getCloudToken(String &var1)
 void xProvision::optionBlinkLED(void)
 {
     StaticJsonDocument<200> doc;
-    /*JsonArray &data = root.createNestedArray("LED_to_blink");
+	JsonObject root = doc.to<JsonObject>();
+    JsonArray data = root.createNestedArray("LED_to_blink");
     data.add("Red");
     data.add("Green");
-    data.add("Blue");*/
+    data.add("Blue");
 
     size_t len = measureJson(doc);
     size_t size = len + 1;
